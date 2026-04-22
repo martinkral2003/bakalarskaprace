@@ -1,0 +1,249 @@
+/* Reset */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Responsive Helpers */
+.hidden-mobile {
+    display: block;
+}
+
+.hidden-desktop {
+    display: none;
+}
+
+/* Layout Container */
+#app {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+    width: 100vw;
+    background-color: #111;
+    color: white;
+}
+
+/* LEFT SIDE (Video) */
+#video-section {
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+#video-section h1 {
+    margin-bottom: 15px;
+    font-size: 22px;
+}
+
+#video-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+#camera-stream {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* Horizon Canvas - Upper Right Corner */
+#horizon-overlay {
+    position: fixed;
+    top: 20px;
+    right: 340px;
+    width: 300px;
+    height: 300px;
+    border: 2px solid #444;
+    border-radius: 8px;
+    cursor: crosshair;
+    background-color: rgba(0, 0, 0, 0.3);
+}
+
+/* RIGHT SIDE PANEL */
+#control-panel {
+    width: 320px;
+    background-color: #1c1c1c;
+    padding: 20px;
+    border-left: 2px solid #333;
+    overflow-y: auto;
+}
+
+/* Headings */
+#control-panel h2 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    font-size: 18px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+#control-panel h3 {
+    margin-top: 15px;
+    margin-bottom: 8px;
+    font-size: 15px;
+}
+
+/* Labels */
+#control-panel label {
+    display: block;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+
+/* Inputs */
+input[type="range"] {
+    width: 100%;
+    margin-top: 5px;
+    touch-action: pan-y;  /* Allow vertical scrolling, prevent horizontal slider drag from interfering */
+}
+
+select {
+    width: 100%;
+    padding: 6px;
+    margin-bottom: 15px;
+    background: #222;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 4px;
+}
+
+/* Buttons */
+button {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 12px;
+    background-color: #2a2a2a;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #3a3a3a;
+}
+
+button:active {
+    background-color: #4a4a4a;
+    transform: scale(0.98);
+}
+
+/* Movement Buttons */
+.movement-btn {
+    padding: 12px;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+/* D-Pad (Mobile Movement) */
+#mobile-movement {
+    padding-top: 15px;
+    border-top: 1px solid #333;
+    margin-top: 15px;
+}
+
+#mobile-movement h3 {
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+.d-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.d-pad-row {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.d-pad-btn {
+    width: 60px;
+    height: 60px;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    border-radius: 6px;
+    background-color: #2a5a7a;
+    border: 2px solid #3a7a9a;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.d-pad-btn:active {
+    background-color: #1a4a6a;
+    border-color: #2a6a8a;
+}
+
+.d-pad-btn.forward {
+    width: 70px;
+}
+
+.d-pad-btn.backward {
+    width: 70px;
+}
+
+.d-pad-btn.stop {
+    width: 70px;
+    background-color: #5a3a3a;
+    border-color: #7a5a5a;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.d-pad-btn.stop:active {
+    background-color: #4a2a2a;
+    border-color: #6a4a4a;
+}
+
+/* Media Queries */
+@media (max-width: 1024px) {
+    .hidden-mobile {
+        display: none !important;
+    }
+
+    .hidden-desktop {
+        display: block !important;
+    }
+
+    #app {
+        flex-direction: column;
+    }
+
+    #video-section {
+        flex: 0 0 40%;
+        padding: 10px;
+    }
+
+    #video-section h1 {
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+
+    #control-panel {
+        flex: 1;
+        width: 100% !important;
+        border-left: none;
+        border-top: 2px solid #333;
+        overflow-y: auto;
+        padding: 15px;
+    }
+}

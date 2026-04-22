@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Sewer Inspection Robot</title>
+        <link rel="stylesheet" href="/static/style.css">
+    </head>
+
+    <body>
+
+    <div id="app">
+
+        <!-- LEFT: Video Area -->
+        <div id="video-section">
+            <div id="video-container">
+                <img id="camera-stream" src="/stream.mjpg">
+                <canvas id="horizon-overlay"></canvas>
+            </div>
+       
+            <!-- MOBILE: Movement Controls -->
+            <div id="mobile-movement" class="hidden-desktop">
+                <h3>Movement</h3>
+                <div class="d-pad">
+                    <button id="btn-forward" class="d-pad-btn forward">▲</button>
+                    <div class="d-pad-row">
+                        <button id="btn-left" class="d-pad-btn left">◄</button>
+                        <button id="btn-stop" class="d-pad-btn stop">STOP</button>
+                        <button id="btn-right" class="d-pad-btn right">►</button>
+                    </div>
+                    <button id="btn-backward" class="d-pad-btn backward">▼</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Control Panel -->
+        <div id="control-panel">
+
+            <h2>Movement</h2>
+            <div id="desktop-movement" class="hidden-mobile">
+                <p style="font-size: 12px; color: #999; margin-bottom: 15px;">Use arrow keys or buttons</p>
+                <button id="btn-forward-desktop" class="movement-btn">▲ Forward</button>
+                <button id="btn-left-desktop" class="movement-btn">◄ Left</button>
+                <button id="btn-right-desktop" class="movement-btn">► Right</button>
+                <button id="btn-backward-desktop" class="movement-btn">▼ Backward</button>
+            </div>
+
+            <h2>Camera</h2>
+            <label>Up-Down
+                <input type="range" id="servo-y" min="-65" max="110" value="30">
+            </label>
+
+            <label>Left-Right
+                <input type="range" id="servo-x" min="-120" max="120" value="0">
+            </label>
+
+            <button id="home-camera">Home</button>
+
+            <h3>Resolution</h3>
+            <select id="resolution">
+                <option value="640x480">640x480</option>
+                <option value="1280x720" selected>1280x720</option>
+                <option value="1296x972">1296x972</option>
+            </select>
+
+            <h2>LED Light</h2>
+            <label>Brightness
+                <input type="range" id="led-brightness" min="0" max="100" value="50">
+            </label>
+
+            <button id="led-toggle">Toggle On/Off</button>
+
+            <h2>Attitude Indicator</h2>
+            <canvas id="horizon-overlay" width="250" height="250" style="border: 2px solid #333; display: block; margin: 10px 0;"></canvas>
+            
+            <h3>Pitch & Roll</h3>
+            <div id="horizon-stats">
+                <p>Pitch: <span id="stat-pitch">0.0°</span></p>
+                <p>Roll: <span id="stat-roll">0.0°</span></p>
+                <p>Status: <span id="stat-incline">Level</span></p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="/static/script.js"></script>
+    </body>
+
+    
+</html>
+
