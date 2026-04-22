@@ -238,6 +238,13 @@ button:active {
         margin-bottom: 10px;
     }
 
+    #horizon-overlay {
+        width: 150px;
+        height: 150px;
+        top: 10px;
+        right: 10px;
+    }
+
     #control-panel {
         flex: 1;
         width: 100% !important;

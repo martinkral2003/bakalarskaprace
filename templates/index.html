@@ -39,15 +39,11 @@
 
             <h2>Movement</h2>
             <div id="desktop-movement" class="hidden-mobile">
-                <p style="font-size: 12px; color: #999; margin-bottom: 15px;">Use arrow keys or buttons</p>
-                <button id="btn-forward-desktop" class="movement-btn">▲ Forward</button>
-                <button id="btn-left-desktop" class="movement-btn">◄ Left</button>
-                <button id="btn-right-desktop" class="movement-btn">► Right</button>
-                <button id="btn-backward-desktop" class="movement-btn">▼ Backward</button>
+                <p style="font-size: 12px; color: #999; margin-bottom: 15px;">Arrow buttons are available on mobile/tablet. On desktop, use keyboard arrows.</p>
             </div>
 
             <h2>Camera</h2>
-            <label>Up-Down
+            <label>Down-Up
                 <input type="range" id="servo-y" min="-65" max="110" value="30">
             </label>
 
@@ -72,20 +68,16 @@
             <button id="led-toggle">Toggle On/Off</button>
 
             <h2>Attitude Indicator</h2>
-            <p style="font-size: 12px; color: #999; margin-bottom: 10px;">Overlay is shown on the video feed.</p>
-            
-            <h3>Pitch & Roll</h3>
+            <h3>Latency</h3>
             <div id="horizon-stats">
-                <p>Pitch: <span id="stat-pitch">0.0°</span></p>
-                <p>Roll: <span id="stat-roll">0.0°</span></p>
-                <p>Status: <span id="stat-incline">Level</span></p>
+                <p><span id="stat-latency">--</span> ms</p>
             </div>
 
         </div>
 
     </div>
 
-    <script src="/static/script.js"></script>
+    <script type="module" src="/static/js/main.js"></script>
     </body>
 
     

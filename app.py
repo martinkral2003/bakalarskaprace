@@ -97,11 +97,11 @@ def light_control():
     return {"status": "ok"}
 
 
-# ---------- PING API ----------
+# ---------- LATENCY API ----------
 
-@app.route("/ping")
-def ping():
-    """Simple ping endpoint for latency measurement"""
+@app.route("/latency")
+def latency():
+    """Simple latency endpoint for round-trip measurement"""
     return {"timestamp": int(time.time() * 1000)}
 
 
