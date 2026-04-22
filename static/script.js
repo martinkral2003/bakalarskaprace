@@ -14,8 +14,21 @@ function sendCommand(dir, speedVal = null) {
     });
 }
 
-// Keyboard arrows
+// Keyboard movement control (arrow keys)
+function isEditableTarget(target) {
+    if (!target) return false;
+    const tag = target.tagName;
+    return (
+        target.isContentEditable ||
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT"
+    );
+}
+
 document.addEventListener('keydown', e => {
+    if (isEditableTarget(e.target)) return;
+
     let dir = null;
     switch(e.key) {
         case "ArrowUp": dir = "forward"; break;
@@ -23,10 +36,18 @@ document.addEventListener('keydown', e => {
         case "ArrowLeft": dir = "left"; break;
         case "ArrowRight": dir = "right"; break;
     }
-    if (dir) startMovement(dir);
+    if (dir) {
+        e.preventDefault();
+        startMovement(dir);
+    }
 });
 
-document.addEventListener('keyup', stopMovement);
+document.addEventListener('keyup', e => {
+    if (isEditableTarget(e.target)) return;
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+        stopMovement();
+    }
+});
 
 function startMovement(dir) {
     if (currentDir === dir) return; // already moving
@@ -184,13 +205,13 @@ function drawHorizon() {
 
     // Get IMU pitch/roll (robot is at 0,0 when calibrated at startup)
     const invertedPitch = -imuPitch;
-    const invertedRoll = -imuRoll;
+    const displayRoll = imuRoll;
 
     // Clamp values
     const maxPitch = 90;
     const maxRoll = 90;
     const clampedPitch = Math.max(-maxPitch, Math.min(maxPitch, invertedPitch));
-    const clampedRoll = Math.max(-maxRoll, Math.min(maxRoll, invertedRoll));
+    const clampedRoll = Math.max(-maxRoll, Math.min(maxRoll, displayRoll));
 
     // Save context
     ctx.save();
@@ -320,6 +341,54 @@ function drawHorizon() {
 servoX.addEventListener("input", () => updateServo());
 servoY.addEventListener("input", () => updateServo());
 
+const CAMERA_KEY_STEP = 2;
+const CAMERA_KEY_INTERVAL_MS = 50;
+const activeCameraKeys = new Set();
+let cameraKeyInterval = null;
+
+function moveServoByDelta(deltaX = 0, deltaY = 0) {
+    const minX = Number(servoX.min);
+    const maxX = Number(servoX.max);
+    const minY = Number(servoY.min);
+    const maxY = Number(servoY.max);
+
+    const nextX = Math.max(minX, Math.min(maxX, Number(servoX.value) + deltaX));
+    const nextY = Math.max(minY, Math.min(maxY, Number(servoY.value) + deltaY));
+
+    const changed = nextX !== Number(servoX.value) || nextY !== Number(servoY.value);
+    if (!changed) return;
+
+    servoX.value = nextX;
+    servoY.value = nextY;
+    updateServo();
+}
+
+function applyCameraKeyMotion() {
+    let deltaX = 0;
+    let deltaY = 0;
+
+    if (activeCameraKeys.has("q")) deltaX -= CAMERA_KEY_STEP;
+    if (activeCameraKeys.has("e")) deltaX += CAMERA_KEY_STEP;
+    if (activeCameraKeys.has("w")) deltaY += CAMERA_KEY_STEP;
+    if (activeCameraKeys.has("s")) deltaY -= CAMERA_KEY_STEP;
+
+    if (deltaX !== 0 || deltaY !== 0) {
+        moveServoByDelta(deltaX, deltaY);
+    }
+}
+
+function startCameraKeyLoop() {
+    if (cameraKeyInterval) return;
+    cameraKeyInterval = setInterval(applyCameraKeyMotion, CAMERA_KEY_INTERVAL_MS);
+}
+
+function stopCameraKeyLoopIfIdle() {
+    if (activeCameraKeys.size === 0 && cameraKeyInterval) {
+        clearInterval(cameraKeyInterval);
+        cameraKeyInterval = null;
+    }
+}
+
 function updateServo(){
     fetch("/servo", {
         method: "POST",
@@ -333,6 +402,30 @@ document.getElementById("home-camera").addEventListener("click", () => {
     servoY.value = 30;
     updateServo();
     drawHorizon();
+});
+
+// Keyboard camera control:
+// Q/E -> left/right, W/S -> up/down
+document.addEventListener("keydown", (e) => {
+    if (isEditableTarget(e.target)) return;
+
+    const key = e.key.toLowerCase();
+    if (!["q", "e", "w", "s"].includes(key)) return;
+
+    e.preventDefault();
+    activeCameraKeys.add(key);
+    applyCameraKeyMotion(); // immediate response on first press
+    startCameraKeyLoop();
+});
+
+document.addEventListener("keyup", (e) => {
+    if (isEditableTarget(e.target)) return;
+
+    const key = e.key.toLowerCase();
+    if (!["q", "e", "w", "s"].includes(key)) return;
+
+    activeCameraKeys.delete(key);
+    stopCameraKeyLoopIfIdle();
 });
 
 // ----- LED Control -----
