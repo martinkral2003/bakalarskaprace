@@ -25,6 +25,12 @@ export function initCameraControls() {
         });
     }
 
+    function homeServos() {
+        servoX.value = 0;
+        servoY.value = 30;
+        updateServo();
+    }
+
     function moveServoByDelta(deltaX = 0, deltaY = 0) {
         const minX = Number(servoX.min);
         const maxX = Number(servoX.max);
@@ -71,11 +77,7 @@ export function initCameraControls() {
     servoX.addEventListener("input", updateServo);
     servoY.addEventListener("input", updateServo);
 
-    homeButton.addEventListener("click", () => {
-        servoX.value = 0;
-        servoY.value = 30;
-        updateServo();
-    });
+    homeButton.addEventListener("click", homeServos);
 
     document.addEventListener("keydown", (e) => {
         const key = e.key.toLowerCase();
@@ -111,4 +113,6 @@ export function initCameraControls() {
             })
             .catch((err) => console.error(err));
     });
+
+    homeServos();
 }
