@@ -21,7 +21,7 @@ export function initCameraControls() {
     function updateServo() {
         postJSON("/servo", {
             x: -Number(servoX.value),
-            y: Number(servoY.value)
+            y: -Number(servoY.value)
         });
     }
 
@@ -46,8 +46,8 @@ export function initCameraControls() {
         let deltaX = 0;
         let deltaY = 0;
 
-        if (activeCameraKeys.has("q")) deltaX -= CAMERA_KEY_STEP;
-        if (activeCameraKeys.has("e")) deltaX += CAMERA_KEY_STEP;
+        if (activeCameraKeys.has("a")) deltaX -= CAMERA_KEY_STEP;
+        if (activeCameraKeys.has("d")) deltaX += CAMERA_KEY_STEP;
         if (activeCameraKeys.has("w")) deltaY -= CAMERA_KEY_STEP;
         if (activeCameraKeys.has("s")) deltaY += CAMERA_KEY_STEP;
 
@@ -79,7 +79,7 @@ export function initCameraControls() {
 
     document.addEventListener("keydown", (e) => {
         const key = e.key.toLowerCase();
-        if (!["q", "e", "w", "s"].includes(key)) return;
+        if (!["a", "d", "w", "s"].includes(key)) return;
 
         e.preventDefault();
         activeCameraKeys.add(key);
@@ -89,7 +89,7 @@ export function initCameraControls() {
 
     document.addEventListener("keyup", (e) => {
         const key = e.key.toLowerCase();
-        if (!["q", "e", "w", "s"].includes(key)) return;
+        if (!["a", "d", "w", "s"].includes(key)) return;
 
         activeCameraKeys.delete(key);
         stopCameraKeyLoopIfIdle();
