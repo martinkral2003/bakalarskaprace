@@ -54,8 +54,8 @@ export function initCameraControls() {
 
         if (activeCameraKeys.has("a")) deltaX -= CAMERA_KEY_STEP;
         if (activeCameraKeys.has("d")) deltaX += CAMERA_KEY_STEP;
-        if (activeCameraKeys.has("w")) deltaY -= CAMERA_KEY_STEP;
-        if (activeCameraKeys.has("s")) deltaY += CAMERA_KEY_STEP;
+        if (activeCameraKeys.has("w")) deltaY += CAMERA_KEY_STEP;
+        if (activeCameraKeys.has("s")) deltaY -= CAMERA_KEY_STEP;
 
         if (deltaX !== 0 || deltaY !== 0) {
             moveServoByDelta(deltaX, deltaY);
