@@ -4,11 +4,13 @@ const IMU_INTERVAL_MS = 500;
 
 export function initHorizonOverlay() {
     const canvas = document.getElementById("horizon-overlay");
+    const toggleButton = document.getElementById("toggle-horizon");
     if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     let imuPitch = 0;
     let imuRoll = 0;
+    let isVisible = true;
 
     function drawHorizon() {
         const width = canvas.width;
@@ -137,10 +139,18 @@ export function initHorizonOverlay() {
 
     function resizeCanvas() {
         const isMobileOrTablet = window.matchMedia("(max-width: 1024px)").matches;
-        const overlaySize = isMobileOrTablet ? 150 : 300;
+        const overlaySize = isMobileOrTablet ? 130 : 260;
         canvas.width = overlaySize;
         canvas.height = overlaySize;
         drawHorizon();
+    }
+
+    function setHorizonVisibility(visible) {
+        isVisible = visible;
+        canvas.style.display = isVisible ? "block" : "none";
+        if (toggleButton) {
+            toggleButton.textContent = isVisible ? "Hide Artificial Horizon" : "Show Artificial Horizon";
+        }
     }
 
     function fetchIMUData() {
@@ -154,7 +164,13 @@ export function initHorizonOverlay() {
     }
 
     window.addEventListener("resize", resizeCanvas);
+    if (toggleButton) {
+        toggleButton.addEventListener("click", () => {
+            setHorizonVisibility(!isVisible);
+        });
+    }
     setInterval(fetchIMUData, IMU_INTERVAL_MS);
     resizeCanvas();
+    setHorizonVisibility(true);
     fetchIMUData();
 }
