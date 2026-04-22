@@ -4,7 +4,7 @@ class LightController:
 
     def __init__(self, pin=21):
         self.led = PWMLED(pin)
-        self.led.value = 50  # Start with light off
+        self.led.value = 0  # Start with light off
 
     def set_brightness(self, value):
         # value: 0–100
