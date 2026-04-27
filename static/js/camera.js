@@ -84,7 +84,7 @@ export function initCameraControls() {
 
     function homeServos() {
         servoX.value = 0;
-        servoY.value = 30;
+        servoY.value = 0;
         updateServo();
     }
 

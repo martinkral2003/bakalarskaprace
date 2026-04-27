@@ -105,6 +105,12 @@ def latency():
     return {"timestamp": int(time.time() * 1000)}
 
 
+@app.route("/camera_latency")
+def camera_latency():
+    """Approximate camera stream latency as age of latest captured frame."""
+    return {"age_ms": camera.get_latest_frame_age_ms()}
+
+
 # ---------- STREAM ----------
 
 @app.route("/stream.mjpg")

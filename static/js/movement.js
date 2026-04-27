@@ -34,8 +34,13 @@ export function initMovementControls() {
         }, RAMP_INTERVAL_MS);
     }
 
+    function shouldIgnoreArrowMovementHotkeys(target) {
+        if (!isEditableTarget(target)) return false;
+        return !(target && target.tagName === "INPUT" && target.type === "range");
+    }
+
     document.addEventListener("keydown", (e) => {
-        if (isEditableTarget(e.target)) return;
+        if (shouldIgnoreArrowMovementHotkeys(e.target)) return;
 
         let dir = null;
         switch (e.key) {
@@ -51,7 +56,7 @@ export function initMovementControls() {
     });
 
     document.addEventListener("keyup", (e) => {
-        if (isEditableTarget(e.target)) return;
+        if (shouldIgnoreArrowMovementHotkeys(e.target)) return;
         if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
             stopMovement();
         }
