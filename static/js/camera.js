@@ -3,6 +3,7 @@ import {postJSON} from "./api.js";
 const CAMERA_KEY_STEP = 2;
 const CAMERA_KEY_INTERVAL_MS = 50;
 const STREAM_REFRESH_MS = 3000;
+const SERVO_SEND_MIN_INTERVAL_MS = 120;
 
 export function initCameraControls() {
     const servoX = document.getElementById("servo-x");
@@ -10,6 +11,7 @@ export function initCameraControls() {
     const homeButton = document.getElementById("home-camera");
     const resolutionSelect = document.getElementById("resolution");
     const cameraImg = document.getElementById("camera-stream");
+    const statFps = document.getElementById("stat-fps");
 
     if (!servoX || !servoY || !homeButton || !resolutionSelect || !cameraImg) {
         return;
@@ -17,12 +19,67 @@ export function initCameraControls() {
 
     const activeCameraKeys = new Set();
     let cameraKeyInterval = null;
+    let servoRequestInFlight = false;
+    let pendingServoPayload = null;
+    let servoSendTimer = null;
+    let lastServoSentAt = 0;
+    let frameCount = 0;
+    let fpsWindowStart = performance.now();
 
-    function updateServo() {
-        postJSON("/servo", {
+    function getServoPayload() {
+        return {
             x: -Number(servoX.value),
             y: -Number(servoY.value)
-        });
+        };
+    }
+
+    function attemptSendServoUpdate() {
+        if (servoRequestInFlight || !pendingServoPayload) return;
+
+        const elapsed = Date.now() - lastServoSentAt;
+        const remaining = SERVO_SEND_MIN_INTERVAL_MS - elapsed;
+        if (remaining > 0) {
+            if (!servoSendTimer) {
+                servoSendTimer = setTimeout(() => {
+                    servoSendTimer = null;
+                    attemptSendServoUpdate();
+                }, remaining);
+            }
+            return;
+        }
+
+        const payload = pendingServoPayload;
+        pendingServoPayload = null;
+        servoRequestInFlight = true;
+        lastServoSentAt = Date.now();
+
+        postJSON("/servo", payload)
+            .catch((err) => console.error("Servo update failed:", err))
+            .finally(() => {
+                servoRequestInFlight = false;
+                attemptSendServoUpdate();
+            });
+    }
+
+    function updateServo() {
+        pendingServoPayload = getServoPayload();
+        attemptSendServoUpdate();
+    }
+
+    function handleStreamFrameLoaded() {
+        if (!statFps) return;
+
+        frameCount += 1;
+        const now = performance.now();
+        const elapsedMs = now - fpsWindowStart;
+
+        // Keep per-frame work tiny; update DOM only about once a second.
+        if (elapsedMs < 1000) return;
+
+        const fps = (frameCount * 1000) / elapsedMs;
+        statFps.textContent = fps.toFixed(1);
+        frameCount = 0;
+        fpsWindowStart = now;
     }
 
     function homeServos() {
@@ -96,6 +153,8 @@ export function initCameraControls() {
         activeCameraKeys.delete(key);
         stopCameraKeyLoopIfIdle();
     });
+
+    cameraImg.addEventListener("load", handleStreamFrameLoaded);
 
     setInterval(() => {
         cameraImg.src = `/stream.mjpg?${Date.now()}`;

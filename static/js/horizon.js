@@ -11,6 +11,7 @@ export function initHorizonOverlay() {
     let imuPitch = 0;
     let imuRoll = 0;
     let isVisible = true;
+    let imuRequestInFlight = false;
 
     function drawHorizon() {
         const width = canvas.width;
@@ -154,13 +155,20 @@ export function initHorizonOverlay() {
     }
 
     function fetchIMUData() {
+        if (imuRequestInFlight) return;
+        imuRequestInFlight = true;
+
         getJSON("/imu")
             .then((data) => {
                 imuPitch = parseFloat(data.pitch) || 0;
                 imuRoll = parseFloat(data.roll) || 0;
                 drawHorizon();
             })
-            .catch((err) => console.error("Error fetching IMU:", err));
+            .catch((err) => console.error("Error fetching IMU:", err))
+            .finally(() => {
+                imuRequestInFlight = false;
+                setTimeout(fetchIMUData, IMU_INTERVAL_MS);
+            });
     }
 
     window.addEventListener("resize", resizeCanvas);
@@ -169,7 +177,6 @@ export function initHorizonOverlay() {
             setHorizonVisibility(!isVisible);
         });
     }
-    setInterval(fetchIMUData, IMU_INTERVAL_MS);
     resizeCanvas();
     setHorizonVisibility(true);
     fetchIMUData();
