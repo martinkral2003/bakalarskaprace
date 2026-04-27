@@ -24,7 +24,9 @@ class CameraController:
         transform = Transform(hflip=True, vflip=True) if self.rotate else Transform()
 
         config = self.picam2.create_video_configuration(
-            main={"size": self.resolution},
+            # Request BGR frames directly so we can JPEG-encode without
+            # per-frame color conversion overhead.
+            main={"size": self.resolution, "format": "BGR888"},
             transform=transform
         )
 
@@ -37,15 +39,6 @@ class CameraController:
         while True:
             with self.lock:
                 frame = self.picam2.capture_array()
-
-            # Picamera2 commonly provides RGB/RGBA arrays while OpenCV JPEG
-            # encoding expects BGR. Convert explicitly to avoid red/blue swap.
-            if len(frame.shape) == 3:
-                channels = frame.shape[2]
-                if channels == 4:
-                    frame = cv2.cvtColor(frame, cv2.COLOR_RGBA2BGR)
-                elif channels == 3:
-                    frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
             encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_quality]
             _, buffer = cv2.imencode(".jpg", frame, encode_param)
