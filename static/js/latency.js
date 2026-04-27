@@ -4,20 +4,13 @@ const LATENCY_INTERVAL_MS = 2000;
 
 export function initLatencyWidget() {
     const statLatency = document.getElementById("stat-latency");
-    const statCameraLatency = document.getElementById("stat-camera-latency");
-    if (!statLatency && !statCameraLatency) return;
+    if (!statLatency) return;
 
     let latencyValue = null;
-    let cameraLatencyValue = null;
     let requestInFlight = false;
 
     function renderLatency() {
-        if (statLatency) {
-            statLatency.textContent = latencyValue === null ? "--" : `${latencyValue}`;
-        }
-        if (statCameraLatency) {
-            statCameraLatency.textContent = cameraLatencyValue === null ? "--" : `${cameraLatencyValue}`;
-        }
+        statLatency.textContent = latencyValue === null ? "--" : `${latencyValue}`;
     }
 
     function measureLatency() {
@@ -26,20 +19,9 @@ export function initLatencyWidget() {
 
         const startTime = Date.now();
 
-        Promise.allSettled([
-            getJSON("/latency"),
-            getJSON("/camera_latency")
-        ])
-            .then(([browserLatencyResult, cameraLatencyResult]) => {
-                if (browserLatencyResult.status === "fulfilled") {
-                    latencyValue = Date.now() - startTime;
-                }
-
-                if (cameraLatencyResult.status === "fulfilled") {
-                    const age = Number(cameraLatencyResult.value.age_ms);
-                    cameraLatencyValue = Number.isFinite(age) ? age : null;
-                }
-
+        getJSON("/latency")
+            .then(() => {
+                latencyValue = Date.now() - startTime;
                 renderLatency();
             })
             .catch((err) => console.error("Latency measurement failed:", err))

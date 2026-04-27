@@ -1,7 +1,6 @@
 
 import cv2
 import threading
-import time
 from picamera2 import Picamera2
 from libcamera import Transform
 
@@ -14,7 +13,6 @@ class CameraController:
         self.resolution = resolution
         self.jpeg_quality = jpeg_quality
         self.rotate = rotate
-        self.last_frame_capture_ms = None
 
         self._configure_camera()
         self.picam2.start()
@@ -39,7 +37,6 @@ class CameraController:
         while True:
             with self.lock:
                 frame = self.picam2.capture_array()
-                self.last_frame_capture_ms = int(time.time() * 1000)
 
             # Picamera2 commonly provides RGB/RGBA arrays while OpenCV JPEG
             # encoding expects BGR. Convert explicitly to avoid red/blue swap.
@@ -57,12 +54,6 @@ class CameraController:
                    b"Content-Type: image/jpeg\r\n\r\n" +
                    buffer.tobytes() +
                    b"\r\n")
-
-    def get_latest_frame_age_ms(self):
-        with self.lock:
-            if self.last_frame_capture_ms is None:
-                return None
-            return max(0, int(time.time() * 1000) - self.last_frame_capture_ms)
 
     # -----------------------------
     # Resolution Change
