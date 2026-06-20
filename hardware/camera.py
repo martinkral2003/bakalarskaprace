@@ -76,7 +76,7 @@ class CameraController:
                 # receives a steady stream of chunks rather than waiting for the
                 # next keyframe to flush.
                 "-movflags", "empty_moov+default_base_moof",
-                "-frag_duration", "500000",
+                "-frag_duration", "100000",
                 "pipe:1",
             ],
             stdin=subprocess.PIPE,
@@ -108,8 +108,8 @@ class CameraController:
 
         with self.lock:
             self.picam2.stop()
-            # iperiod=30 → keyframe every ~1 s at 30 fps, keeping fragments short.
-            encoder = H264Encoder(bitrate=2_000_000, repeat=True, iperiod=30)
+            # iperiod=10 → keyframe every ~333 ms at 30 fps.
+            encoder = H264Encoder(bitrate=2_000_000, repeat=True, iperiod=10)
             self.picam2.start_recording(encoder, h264_out)
 
         try:

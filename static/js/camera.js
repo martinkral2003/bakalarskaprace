@@ -50,12 +50,13 @@ function initH264Stream(video, statFps) {
         sourceBuffer.addEventListener('updateend', () => {
             appending = false;
 
-            // Trim buffered video older than 5 s to avoid unbounded memory growth.
+            // Keep only the last 1 s in the buffer — less for the browser to
+            // manage and discourages it from buffering far ahead.
             if (sourceBuffer.buffered.length > 0 && !sourceBuffer.updating) {
                 const end = sourceBuffer.buffered.end(0);
                 const start = sourceBuffer.buffered.start(0);
-                if (end - start > 5) {
-                    try { sourceBuffer.remove(start, end - 3); } catch (_) {}
+                if (end - start > 1) {
+                    try { sourceBuffer.remove(start, end - 1); } catch (_) {}
                     return; // tryAppend will run on the remove's updateend
                 }
             }
@@ -86,14 +87,14 @@ function initH264Stream(video, statFps) {
         }).catch(err => console.error('[camera] fetch error', err));
     });
 
-    // Keep playhead within 1 s of the live edge to avoid latency creep.
-    video.addEventListener('progress', () => {
-        if (video.buffered.length === 0) return;
+    // Keep playhead within ~200 ms of the live edge.
+    setInterval(() => {
+        if (video.buffered.length === 0 || video.paused) return;
         const liveEdge = video.buffered.end(video.buffered.length - 1);
-        if (liveEdge - video.currentTime > 1.5) {
-            video.currentTime = liveEdge - 0.2;
+        if (liveEdge - video.currentTime > 0.5) {
+            video.currentTime = liveEdge - 0.05;
         }
-    });
+    }, 200);
 
     video.play().catch(() => {});
 
