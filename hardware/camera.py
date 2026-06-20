@@ -40,11 +40,11 @@ class CameraController:
             with self.lock:
                 frame = self.picam2.capture_array()
 
-            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), self.jpeg_quality]
-            _, buffer = cv2.imencode(".jpg", frame, encode_param)
+            encode_param = [int(cv2.IMWRITE_WEBP_QUALITY ), self.jpeg_quality]
+            _, buffer = cv2.imencode(".webp", frame, encode_param)
 
             yield (b"--frame\r\n"
-                   b"Content-Type: image/jpeg\r\n\r\n" +
+                   b"Content-Type: image/webp\r\n\r\n" +
                    buffer.tobytes() +
                    b"\r\n")
 
