@@ -115,6 +115,15 @@ def stream():
     )
 
 
+@app.route("/stream.h264")
+def stream_h264():
+    return Response(
+        camera.generate_h264_stream(),
+        mimetype='video/mp4',
+        headers={"Cache-Control": "no-cache, no-store"}
+    )
+
+
 # ---------- CAMERA RESOLUTION ----------
 
 @app.route('/set_resolution/<int:w>x<int:h>')

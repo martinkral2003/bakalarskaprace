@@ -2,20 +2,113 @@ import {postJSON} from "./api.js";
 
 const CAMERA_KEY_STEP = 2;
 const CAMERA_KEY_INTERVAL_MS = 50;
-const STREAM_REFRESH_MS = 3000;
 const SERVO_SEND_MIN_INTERVAL_MS = 120;
+
+// H.264 High Profile, Level 4.0 — matches picamera2's hardware encoder default.
+// Try High → Main → Baseline in order so the browser picks what it supports.
+const H264_CODEC_CANDIDATES = [
+    'video/mp4; codecs="avc1.640028"',
+    'video/mp4; codecs="avc1.4D401F"',
+    'video/mp4; codecs="avc1.42E01E"',
+];
+
+function initH264Stream(video, statFps) {
+    if (!('MediaSource' in window)) {
+        console.warn('[camera] MSE not supported');
+        return;
+    }
+
+    const mimeType = H264_CODEC_CANDIDATES.find(c => MediaSource.isTypeSupported(c));
+    if (!mimeType) {
+        console.warn('[camera] H.264 not supported in MSE');
+        return;
+    }
+
+    const mediaSource = new MediaSource();
+    video.src = URL.createObjectURL(mediaSource);
+
+    mediaSource.addEventListener('sourceopen', () => {
+        const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
+        const pending = [];
+        let appending = false;
+
+        function tryAppend() {
+            if (appending || pending.length === 0 || sourceBuffer.updating) return;
+            appending = true;
+            sourceBuffer.appendBuffer(pending.shift());
+        }
+
+        sourceBuffer.addEventListener('updateend', () => {
+            appending = false;
+
+            // Trim buffered video older than 5 s to avoid unbounded memory growth.
+            if (sourceBuffer.buffered.length > 0 && !sourceBuffer.updating) {
+                const end = sourceBuffer.buffered.end(0);
+                const start = sourceBuffer.buffered.start(0);
+                if (end - start > 5) {
+                    try { sourceBuffer.remove(start, end - 3); } catch (_) {}
+                }
+            }
+
+            tryAppend();
+        });
+
+        sourceBuffer.addEventListener('error', (e) => {
+            console.error('[camera] SourceBuffer error', e);
+        });
+
+        fetch('/stream.h264').then(response => {
+            const reader = response.body.getReader();
+
+            function pump() {
+                reader.read().then(({ done, value }) => {
+                    if (done) return;
+                    pending.push(value.buffer);
+                    tryAppend();
+                    pump();
+                }).catch(err => console.error('[camera] stream read error', err));
+            }
+
+            pump();
+        }).catch(err => console.error('[camera] fetch error', err));
+    });
+
+    video.play().catch(() => {});
+
+    // FPS counter via requestVideoFrameCallback (Chrome 83+, Safari 15.4+).
+    if ('requestVideoFrameCallback' in video && statFps) {
+        let frameCount = 0;
+        let windowStart = performance.now();
+
+        function onFrame() {
+            frameCount++;
+            const now = performance.now();
+            const elapsed = now - windowStart;
+            if (elapsed >= 1000) {
+                statFps.textContent = ((frameCount * 1000) / elapsed).toFixed(1);
+                frameCount = 0;
+                windowStart = now;
+            }
+            video.requestVideoFrameCallback(onFrame);
+        }
+
+        video.requestVideoFrameCallback(onFrame);
+    }
+}
 
 export function initCameraControls() {
     const servoX = document.getElementById("servo-x");
     const servoY = document.getElementById("servo-y");
     const homeButton = document.getElementById("home-camera");
     const resolutionSelect = document.getElementById("resolution");
-    const cameraImg = document.getElementById("camera-stream");
+    const video = document.getElementById("camera-stream");
     const statFps = document.getElementById("stat-fps");
 
-    if (!servoX || !servoY || !homeButton || !resolutionSelect || !cameraImg) {
+    if (!servoX || !servoY || !homeButton || !resolutionSelect || !video) {
         return;
     }
+
+    initH264Stream(video, statFps);
 
     const activeCameraKeys = new Set();
     let cameraKeyInterval = null;
@@ -23,8 +116,6 @@ export function initCameraControls() {
     let pendingServoPayload = null;
     let servoSendTimer = null;
     let lastServoSentAt = 0;
-    let frameCount = 0;
-    let fpsWindowStart = performance.now();
 
     function getServoPayload() {
         return {
@@ -64,22 +155,6 @@ export function initCameraControls() {
     function updateServo() {
         pendingServoPayload = getServoPayload();
         attemptSendServoUpdate();
-    }
-
-    function handleStreamFrameLoaded() {
-        if (!statFps) return;
-
-        frameCount += 1;
-        const now = performance.now();
-        const elapsedMs = now - fpsWindowStart;
-
-        // Keep per-frame work tiny; update DOM only about once a second.
-        if (elapsedMs < 1000) return;
-
-        const fps = (frameCount * 1000) / elapsedMs;
-        statFps.textContent = fps.toFixed(1);
-        frameCount = 0;
-        fpsWindowStart = now;
     }
 
     function homeServos() {
@@ -154,23 +229,12 @@ export function initCameraControls() {
         stopCameraKeyLoopIfIdle();
     });
 
-    cameraImg.addEventListener("load", handleStreamFrameLoaded);
-
-    setInterval(() => {
-        cameraImg.src = `/stream.mjpg?${Date.now()}`;
-    }, STREAM_REFRESH_MS);
-
     resolutionSelect.addEventListener("change", () => {
         const res = resolutionSelect.value;
         fetch(`/set_resolution/${res}`)
-            .then((response) => response.text())
-            .then((text) => {
-                console.log(text);
-                setTimeout(() => {
-                    cameraImg.src = `/stream.mjpg?${Date.now()}`;
-                }, 500);
-            })
-            .catch((err) => console.error(err));
+            .then(r => r.text())
+            .then(text => console.log(text))
+            .catch(err => console.error(err));
     });
 
     homeServos();

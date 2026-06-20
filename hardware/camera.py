@@ -1,8 +1,22 @@
 
 import cv2
+import queue
+import subprocess
 import threading
 from picamera2 import Picamera2
+from picamera2.encoders import H264Encoder
+from picamera2.outputs import Output
 from libcamera import Transform
+
+
+class _QueueOutput(Output):
+    """Receives H264 NAL units from picamera2 and puts them on a queue."""
+    def __init__(self):
+        super().__init__()
+        self.queue = queue.Queue(maxsize=60)
+
+    def outputframe(self, frame, keyframe=True, timestamp=None):
+        self.queue.put(bytes(frame))
 
 
 class CameraController:
@@ -24,8 +38,6 @@ class CameraController:
         transform = Transform(hflip=True, vflip=True) if self.rotate else Transform()
 
         config = self.picam2.create_video_configuration(
-            # Request BGR frames directly so we can JPEG-encode without
-            # per-frame color conversion overhead.
             main={"size": self.resolution, "format": "BGR888"},
             transform=transform
         )
@@ -49,6 +61,68 @@ class CameraController:
                    b"\r\n")
 
     # -----------------------------
+    # H.264 fMP4 Stream Generator
+    # -----------------------------
+    def generate_h264_stream(self):
+        h264_out = _QueueOutput()
+
+        ffmpeg = subprocess.Popen(
+            [
+                "ffmpeg", "-loglevel", "error",
+                "-f", "h264", "-i", "pipe:0",
+                "-c:v", "copy",
+                "-f", "mp4",
+                "-movflags", "frag_keyframe+empty_moov+default_base_moof",
+                "pipe:1",
+            ],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+
+        def _feed_ffmpeg():
+            try:
+                while True:
+                    try:
+                        data = h264_out.queue.get(timeout=1.0)
+                        if data is None:
+                            break
+                        ffmpeg.stdin.write(data)
+                        ffmpeg.stdin.flush()
+                    except queue.Empty:
+                        continue
+                    except BrokenPipeError:
+                        break
+            finally:
+                try:
+                    ffmpeg.stdin.close()
+                except Exception:
+                    pass
+
+        feeder = threading.Thread(target=_feed_ffmpeg, daemon=True)
+        feeder.start()
+
+        with self.lock:
+            self.picam2.stop()
+            encoder = H264Encoder(bitrate=2_000_000)
+            self.picam2.start_recording(encoder, h264_out)
+
+        try:
+            while True:
+                chunk = ffmpeg.stdout.read(16384)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            h264_out.queue.put(None)
+            self.picam2.stop_recording()
+            ffmpeg.terminate()
+            ffmpeg.wait()
+            feeder.join(timeout=2.0)
+            with self.lock:
+                self.picam2.start()
+
+    # -----------------------------
     # Resolution Change
     # -----------------------------
     def set_resolution(self, width, height):
@@ -58,7 +132,7 @@ class CameraController:
             self._configure_camera()
             self.picam2.start()
 
-    # -------------- & Total Frame Count
+    # -----------------------------
     # Stop Camera (optional cleanup)
     # -----------------------------
     def stop(self):
