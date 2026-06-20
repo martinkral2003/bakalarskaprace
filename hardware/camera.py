@@ -15,7 +15,7 @@ class _QueueOutput(Output):
         super().__init__()
         self.queue = queue.Queue(maxsize=60)
 
-    def outputframe(self, frame, keyframe=True, timestamp=None):
+    def outputframe(self, frame, keyframe=True, timestamp=None, packet=None, audio=None):
         self.queue.put(bytes(frame))
 
 
