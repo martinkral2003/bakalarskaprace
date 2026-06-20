@@ -28,6 +28,10 @@ function initH264Stream(video, statFps) {
     video.src = URL.createObjectURL(mediaSource);
 
     mediaSource.addEventListener('sourceopen', () => {
+        // Signal a live (unbounded) stream so the browser doesn't treat the
+        // missing duration in the moov box as "finished at t=0".
+        mediaSource.duration = Infinity;
+
         const sourceBuffer = mediaSource.addSourceBuffer(mimeType);
         const pending = [];
         let appending = false;
@@ -35,7 +39,12 @@ function initH264Stream(video, statFps) {
         function tryAppend() {
             if (appending || pending.length === 0 || sourceBuffer.updating) return;
             appending = true;
-            sourceBuffer.appendBuffer(pending.shift());
+            try {
+                sourceBuffer.appendBuffer(pending.shift());
+            } catch (e) {
+                appending = false;
+                console.error('[camera] appendBuffer error', e);
+            }
         }
 
         sourceBuffer.addEventListener('updateend', () => {
@@ -47,6 +56,7 @@ function initH264Stream(video, statFps) {
                 const start = sourceBuffer.buffered.start(0);
                 if (end - start > 5) {
                     try { sourceBuffer.remove(start, end - 3); } catch (_) {}
+                    return; // tryAppend will run on the remove's updateend
                 }
             }
 
@@ -55,6 +65,7 @@ function initH264Stream(video, statFps) {
 
         sourceBuffer.addEventListener('error', (e) => {
             console.error('[camera] SourceBuffer error', e);
+            appending = false;
         });
 
         fetch('/stream.h264').then(response => {
@@ -63,7 +74,9 @@ function initH264Stream(video, statFps) {
             function pump() {
                 reader.read().then(({ done, value }) => {
                     if (done) return;
-                    pending.push(value.buffer);
+                    // Slice to get an independent copy — some browsers reuse the
+                    // underlying ArrayBuffer for the next read().
+                    pending.push(value.buffer.slice(0));
                     tryAppend();
                     pump();
                 }).catch(err => console.error('[camera] stream read error', err));
@@ -71,6 +84,15 @@ function initH264Stream(video, statFps) {
 
             pump();
         }).catch(err => console.error('[camera] fetch error', err));
+    });
+
+    // Keep playhead within 1 s of the live edge to avoid latency creep.
+    video.addEventListener('progress', () => {
+        if (video.buffered.length === 0) return;
+        const liveEdge = video.buffered.end(video.buffered.length - 1);
+        if (liveEdge - video.currentTime > 1.5) {
+            video.currentTime = liveEdge - 0.2;
+        }
     });
 
     video.play().catch(() => {});
